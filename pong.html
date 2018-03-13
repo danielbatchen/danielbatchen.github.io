@@ -1,0 +1,194 @@
+<!doctype html>
+<html>
+<head>
+  <title>Daniel's Pong Game</title>
+  <link rel="stylesheet"
+  type="text/css"
+  href="styles.css">
+</head>
+<body>
+  <div id="header">
+    <div class="container">
+      <a id="header-title" href="index.html">Daniel's Games</a>
+      <ul id="header-nav">
+        <li><a href="about.html">About</a></li><!--navigation plane-->
+        <li><a href="mailto:danielbatchen@gmail.com">Contact</a></li></li>
+      </ul>
+    </div>
+  </div>
+  <div id="content">
+    <div class="container">
+      <canvas id="gameCanvas" width="800"
+      height="600"></canvas>
+      <script>
+      var canvas;
+      var canvasContext;
+      
+      var ballX = 5;
+      var ballY = 200;
+      var ballSpeedX = 5;
+      var ballSpeedY = 5;
+
+      var paddle1Y = 250;
+      var paddle2Y = 250;
+      const PADDLE_HEIGHT = 100;
+
+      var playerLose = false;
+      var levelNumber = 1;
+
+      function calculateMousePos(evt){
+        var rect = canvas.getBoundingClientRect();
+        var root = document.documentElement;
+        var mouseX = evt.clientX - rect.left - root.scrollLeft;
+        var mouseY = evt.clientY - rect.top - root.scrollTop;
+        return {
+          x:mouseX,
+          y:mouseY
+        };
+      }
+      function handleMouseClick(evt){
+        if(showingWinScreen) {
+          ballReset(2);
+          showingWinScreen = false;
+        }
+      }
+      window.onload = function() {
+        canvas = document.getElementById('gameCanvas');
+        canvasContext = canvas.getContext('2d');
+
+        var framesPerSecond = 30;
+        setInterval(function(){
+          moveEverything();drawEverything();
+        }, 1000/framesPerSecond);
+
+        canvas.addEventListener('mousemove',
+          function(evt){
+          var mousePos = calculateMousePos(evt);
+          paddle1Y = mousePos.y - (PADDLE_HEIGHT/2);
+        });
+          canvas.addEventListener('mousedown',handleHouseClick);
+      }
+
+      function ballReset(playerWin){
+        if (playerWin < 2){
+          levelNumber +=  1;
+        } else { levelNumber = 1;}// playerLose = true;;}
+        if(ballSpeedX < 0){
+          ballSpeedX = 5;
+        } if(ballSpeedX > 0){
+          ballSpeedX = -5;
+        };
+        if(ballSpeedY < 0){
+          ballSpeedY = 5;
+        } if(ballSpeedY > 0){
+          ballSpeedY = -5;
+        };
+        ballX = canvas.width/2;
+        ballY = canvas.height/2;
+      }
+
+      function computerMovement(){
+        if(paddle2Y + PADDLE_HEIGHT/2 < ballY -35){
+          paddle2Y += levelNumber*2;
+        } else if (paddle2Y + (PADDLE_HEIGHT/2) > ballY +35){
+          paddle2Y -= levelNumber*2;
+        }
+      }
+
+      function moveEverything(){
+        if (playerLose){
+          return;
+        }
+        ballX = ballX + ballSpeedX;
+        computerMovement();
+        if(ballX > canvas.width-15){
+          if(ballY > paddle2Y &&
+          ballY < paddle2Y + PADDLE_HEIGHT){
+            ballSpeedX = -ballSpeedX;
+            ballSpeedX = ballSpeedX - 1;
+            if(ballSpeedY < 0){
+              ballSpeedY = ballSpeedY - 1;
+            } if(ballSpeedY > 0){
+              ballSpeedY = ballSpeedY + 1;
+            };
+          }
+          else ballReset(1);
+        }
+        if(ballX < 0 + 15){
+          if(ballY > paddle1Y &&
+          ballY < paddle1Y + PADDLE_HEIGHT){
+            ballSpeedX = -ballSpeedX;
+            ballSpeedX = ballSpeedX + 1;
+            if(ballSpeedY < 0){
+              ballSpeedY = ballSpeedY - 1;
+            } if(ballSpeedY > 0){
+              ballSpeedY = ballSpeedY + 1;
+            };
+          }
+          else ballReset(2);
+        }
+        ballY = ballY + ballSpeedY;
+        if(ballY > canvas.height){
+          ballSpeedY = -ballSpeedY;
+        }
+        if(ballY < 0){
+          ballSpeedY = -ballSpeedY;
+        }
+      }
+      function drawNet(){
+        for(var i=40;i<canvas.height-40; i+=40){
+          colourRect(canvas.width/2 - 1,i, 2, 20, 'white');
+        }
+      }
+      function drawEverything(){
+        //bac
+        colourRect(0,0,canvas.width,canvas.height,'black');//background
+        drawNet();
+        if (playerLose){
+          canvasContext.font="30px Arial";
+          canvasContext.fillText("You suck", 400, 50);
+          return;
+        }
+        colourRect(0,paddle1Y,10,PADDLE_HEIGHT,'white');//paddle
+        colourRect(canvas.width - 10,paddle2Y,10,PADDLE_HEIGHT,'white');//paddle
+        colourCircle(ballX,ballY,5,'white');//ball
+        canvasContext.font="30px Arial";
+        canvasContext.fillText("level " + levelNumber, 400, 50);
+      }
+      function colourRect(leftX, topY, width, height, drawColour){
+        canvasContext.fillStyle = drawColour;
+        canvasContext.fillRect(leftX,topY,width,height);
+      }
+      function colourCircle(centreX, centreY, radius, drawColour){
+        canvasContext.fillStyle = drawColour;//ball
+        canvasContext.beginPath();
+        canvasContext.arc(centreX,centreY,radius,0,Math.PI*2, true);
+        canvasContext.fill();
+      }
+      </script>
+    </div>
+  </div>
+  <div id="footer">
+    <div class="container">
+      <div class="column">
+      <h4>My Links</h4>
+      <p>
+        <a href="https://twitter.com/danielbatchen">twitter</a>
+        <br>
+        <a href="https://facebook.com/daniel.batchen">facebook</a>
+      </p>
+    </div>
+      <div class="column">
+      <h4>My Story</h4>
+      <p> I make gaem</p>
+    </div>
+    </div>
+    </div>
+</body>
+</html>
+<html>
+<head>
+  <title>pong</title>
+</head>
+
+</html>
