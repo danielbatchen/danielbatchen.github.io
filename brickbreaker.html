@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<canvas id="gameCanvas" width="800" height="600"> </canvas>
+<script>
+var canvas;
+var canvasContext;
+//ball variables
+var ballX = 400;
+var ballY = 400;
+var ballSpeedX = 0;
+var ballSpeedY = 3;
+const ballRadius = 6;
+//game initialisation variables
+var lives = 3;
+var gameStart = true;
+var showWinScreen = false;
+var showLoseScreen = false;
+//paddle variables
+var paddleX = 360;
+const paddleLength = 100;
+const paddleThickness = 20;
+const paddleStartHeight = 30;
+//brick variables
+const BRICK_W = 80;
+const BRICK_H = 20;
+const BRICK_GAP = 2;
+const BRICK_COLS = 10;
+const BRICK_ROWS = 8;
+var brickGrid = new Array(BRICK_COLS * BRICK_ROWS);
+//player action detection functions
+function calculateMousePos(evt){
+  var rect = canvas.getBoundingClientRect();
+  var root = document.documentElement;
+  var mouseX = evt.clientX - rect.left - root.scrollLeft;
+  var mouseY = evt.clientY - rect.top - root.scrollTop;
+  return {
+    x:mouseX,
+    y:mouseY
+  };
+}
+function handleMouseClick(evt) {
+    if(showLoseScreen) {
+       lives = 3;
+       showLoseScreen = false;
+       resetBricks();
+       ballReset();
+    }
+    if(gameStart) {
+       gameStart = false;
+    }
+    if (showWinScreen){
+      showWinScreen = false;
+      resetBricks();
+      ballReset();
+    }
+  }
+  //main method function
+window.onload = function() {
+  canvas = document.getElementById('gameCanvas');
+  canvasContext = canvas.getContext('2d');
+  resetBricks();
+  var framesPerSecond = 50;
+  setInterval(function(){
+    moveEverything();drawEverything();
+  }, 1000/framesPerSecond);
+  canvas.addEventListener('mousedown', handleMouseClick);
+  canvas.addEventListener('mousemove',
+    function(evt){
+    var mousePos = calculateMousePos(evt);
+    paddleX = mousePos.x - (paddleLength/2);
+  });
+}
+//movement functions
+function moveEverything(){
+  var deltaX = ballX - (paddleX + (paddleLength/2));
+  if (gameStart || showLoseScreen || showWinScreen){ //pause when showing screen
+    return;
+  }
+  if (ballX < ballRadius || ballX > canvas.width - ballRadius){
+    ballSpeedX *= -1;
+  }
+  if (ballY < ballRadius){
+    ballSpeedY *= -1;
+  }
+  if (ballY > canvas.height){
+    lives --;
+    ballReset();
+  }
+  if ((ballX > paddleX) && (ballX < paddleX + paddleLength) && (ballSpeedY > 0)
+  && (ballY > canvas.height - paddleStartHeight - ballRadius)){
+    if (ballSpeedY < BRICK_H){
+      ballSpeedY *= -1.05;
+    }
+    ballSpeedX = deltaX*0.25;
+  }
+  breakAndBounceOffBrickAtPixelCoord(ballX, ballY);
+  playerWin();
+  ballX += ballSpeedX;
+  ballY += ballSpeedY;
+}
+function ballReset(){
+  ballX = (canvas.width/2) - ballRadius;
+  ballY = 2*canvas.height/3;
+  ballSpeedX = 0;
+  ballSpeedY = 5;
+  if (lives == 0){
+    showLoseScreen = true;
+  }
+}
+function playerWin (){ //check if all members of brickGrid array ==0, return true if true
+  var missingBricks = 0;
+  for (var i=0; i<BRICK_COLS * BRICK_ROWS; i++){
+    if (brickGrid[i] == 0){
+      missingBricks++;
+    }
+  }
+  if (missingBricks == BRICK_COLS*BRICK_ROWS){
+    showWinScreen = true;
+    resetBricks();
+  }
+}
+//drawing functions
+function drawEverything(){
+  if (gameStart){
+    colourRect(0,0,canvas.width,canvas.height,'black');//background
+    colourText("Brick Breaker. Are you ready ya n00b?",
+    "30px Arial", "center", 'white', canvas.width/2, 200);
+    colourText("click here to play",
+    "15px Arial", "center", 'white', canvas.width/2, 400);
+    return;
+  }
+  if (showLoseScreen){
+    colourRect(0,0,canvas.width,canvas.height,'black');//background
+    colourText("You Lose.",
+    "30px Arial", "center", 'white', canvas.width/2, 200);
+    colourText("click to play again",
+    "15px Arial", "center", 'white', canvas.width/2, 400);
+    return;
+  }
+  if (showWinScreen){
+    colourRect(0,0,canvas.width,canvas.height,'black');//background
+    colourText("You Win!",
+    "30px Arial", "center", 'white', canvas.width/2, 200);
+    colourText("click to play again",
+    "15px Arial", "center", 'white', canvas.width/2, 400);
+    return;
+  }
+  colourRect(0,0,canvas.width,canvas.height,'black');//background
+  drawBricks();
+  colourRect(paddleX, canvas.height - paddleStartHeight,
+    paddleLength, paddleThickness, 'white');//paddle
+  colourCircle(ballX,ballY,ballRadius,'white');//ball
+  colourText("lives: " + lives, "20px Arial", "right", 'white', 700, 550);
+}
+function colourRect(leftX, topY, width, height, drawColour){
+  canvasContext.fillStyle = drawColour;
+  canvasContext.fillRect(leftX,topY,width,height);
+}
+function colourCircle(centreX, centreY, radius, drawColour){
+  canvasContext.fillStyle = drawColour;//ball
+  canvasContext.beginPath();
+  canvasContext.arc(centreX,centreY,radius,0,Math.PI*2, true);
+  canvasContext.fill();
+}
+function colourText(message,font,textAlign,colour,posX,posY){
+  canvasContext.fillStyle = colour;
+  canvasContext.font=font;
+  canvasContext.textAlign=textAlign;
+  canvasContext.fillText(message, posX, posY);
+}
+//brick functions
+function brickTileToIndex(tileCol, tileRow){ //converts COL:ROW format to array pos
+  return (tileCol + BRICK_COLS*tileRow);
+}
+function isBrickAtTileCoord(brickTileCol, brickTileRow){ //returns true if brick is at COL:ROW
+  var brickIndex = brickTileToIndex(brickTileCol, brickTileRow);
+  return (brickGrid[brickIndex] == 1);
+}
+function breakAndBounceOffBrickAtPixelCoord(pixelX, pixelY){//
+  var tileCol = Math.floor(pixelX/BRICK_W);
+  var tileRow = Math.floor(pixelY/BRICK_H);
+  if (tileCol > BRICK_COLS || tileCol < 0 ||
+  tileRow > BRICK_ROWS || tileRow < 0){
+    return;
+  }
+  var brickIndex = brickTileToIndex(tileCol, tileRow);
+  if (brickGrid[brickIndex] == 1){
+    var prevBallX = ballX - ballSpeedX;
+    var prevBallY = ballY - ballSpeedY;
+    var prevTileCol = Math.floor(prevBallX / BRICK_W);
+    var prevTileRow = Math.floor(prevBallY/ BRICK_H);
+    if (prevTileCol != tileCol){
+        ballSpeedX *= -1;
+    }
+    if (prevTileRow != tileRow){
+        ballSpeedY *= -1;
+    }
+    brickGrid[brickIndex] = 0;
+  }
+}
+function resetBricks(){
+  for(var i=0; i<BRICK_COLS * 3; i++){
+    brickGrid[i] = 0;
+  }
+  for(var i=BRICK_COLS*3; i<BRICK_COLS * BRICK_ROWS; i++){
+    brickGrid[i] = 1;
+  }
+}
+function drawBricks(){
+  for (var eachCol=0; eachCol<BRICK_COLS; eachCol++){
+      for (var eachRow=0; eachRow<BRICK_ROWS; eachRow++){
+        if (isBrickAtTileCoord(eachCol, eachRow)){
+          var brickLeftEdgeX = eachCol*BRICK_W;
+          var brickTopEdgeY = eachRow*BRICK_H;
+          colourRect(brickLeftEdgeX, brickTopEdgeY,
+            BRICK_W - BRICK_GAP, BRICK_H - BRICK_GAP, 'blue');
+        }
+      }
+    }
+  }
+</script>
